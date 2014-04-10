@@ -1,0 +1,8 @@
+*.pyc
+*.pb
+*.out
+*.txt
+*.csv
+*.png
+*.pkl
+*.lock
