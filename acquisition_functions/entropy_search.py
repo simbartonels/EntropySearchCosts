@@ -80,6 +80,12 @@ def fetch_acquisition_function(index):
         return EntropySearchBigData7
     elif index == 8:
         return EntropySearchBigData8
+    elif index == 9:
+        from .big_data.entropy_search_big_data9 import EntropySearchBigData9
+        return EntropySearchBigData9
+    elif index == 10:
+        from .big_data.entropy_search_big_data10 import EntropySearchBigData10
+        return EntropySearchBigData10
     else:
         raise NotImplementedError("There exists no acquisition function associated with that number.")
 

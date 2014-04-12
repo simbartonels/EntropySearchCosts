@@ -8,6 +8,9 @@ def evaluation(size, log_C, gamma):
     path = os.path.abspath(os.path.join(path, "mnist_data"))
     print "loading train set..."
     X, y = load_svmlight_file(os.path.join(path, "mnist"))
+    #stupid dump_svmlight_file changes shape of the data!!! therefore we leave it all in one file to maintain shape
+    X_test = X[60000:]
+    y_test = y[60000:]
     idx = np.arange(0, X.shape[0])
     np.random.shuffle(idx)
     idx = idx[:size]
@@ -21,7 +24,7 @@ def evaluation(size, log_C, gamma):
     print "training..."
     clf.fit(X_train, y_train)
     print "evaluating (on training set!)..."
-    score = clf.score(X, y)
+    score = clf.score(X_test, y_test)
 
     print "Mean Accuracy: " + str(score)
 

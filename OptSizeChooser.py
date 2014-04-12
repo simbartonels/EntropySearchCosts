@@ -124,7 +124,7 @@ class OptSizeChooser(object):
     def __init__(self, expt_dir, covar='Matern52', cost_covar='Polynomial3', mcmc_iters=10,
                  pending_samples=100, noiseless=False, burnin=100,
                  grid_subset=20, acquisition_function_index=0,
-                 model_costs=True, project_candidates=True,
+                 model_costs=True, project_candidates=True, seed=None,
                  pool_size=10, do_visualization=False, incumbent_inter_sample_distance=20,
                  incumbent_number_of_minima=10, number_of_pmin_samples=1000):
         #TODO: use arguments!
@@ -159,6 +159,9 @@ class OptSizeChooser(object):
         self._do_visualization = do_visualization
         #FIXME: not working yet
         self._project_candidates = False #bool(project_candidates)
+
+        if seed is not None:
+            np.random.seed(int(seed))
 
     def _recover(self, dims, comp, values, durations):
         '''
@@ -217,6 +220,7 @@ class OptSizeChooser(object):
             dims = dims - 1
         for i in xrange(0, dims):
             self._opt_bounds.append((0, 1))
+        self._init_trace_file(dims)
 
     def _write_parameters_to_file(self, seed):
         '''
@@ -309,21 +313,6 @@ class OptSizeChooser(object):
             incumbent = local_minima[0]
         log("Current suspected location of the minimum: " + str(incumbent))
 
-        try:
-            #write incumbent to file
-            incumbent_fh = open(os.path.join(self.expt_dir, 'incumbent.csv'), 'a')
-            incumbent_as_string = ''
-            for d in range(0, incumbent.shape[0]):
-                incumbent_as_string+=str(incumbent[d]) + ','
-            incumbent_as_string+=str(seed) + ","
-            incumbent_as_string+=str(self._hyper_samples[len(self._hyper_samples)-1]) + ","
-            incumbent_as_string+=str(self._cost_function_hyper_parameter_samples[len(self._hyper_samples)-1])
-            incumbent_fh.write("%s\n"
-                           % (incumbent_as_string))
-            incumbent_fh.close()
-        except Exception, e:
-            log("WARNING: Could not write incumbent to file!")
-
         cand = np.vstack((cand, local_minima))
 
         ac_funcs = self._initialize_acquisition_functions(self._ac_func, comp, vals, incumbent, models, cost_models)
@@ -346,10 +335,63 @@ class OptSizeChooser(object):
 
 
         log("Evaluating: " + str(cand[best_cand]))
+        self._write_trace(seed, incumbent, best_cand, cand[best_cand])
         if(best_cand >= len(candidates)):
             # the chosen candidate is not among the grid candidates
             return (len(candidates) + 1, cand[best_cand])
         return int(candidates[best_cand])
+
+    def _write_trace(self, seed, incumbent, candidate_index, candidate):
+        '''
+        Writes
+        '''
+        try:
+            #write incumbent to file
+            incumbent_fh = open(os.path.join(self.expt_dir, 'incumbent.csv'), 'a')
+            incumbent_as_string = ''
+            for d in range(0, incumbent.shape[0]):
+                incumbent_as_string+=str(incumbent[d]) + ','
+            incumbent_as_string+=str(candidate_index) + ","
+            for d in range(0, candidate.shape[0]):
+                incumbent_as_string+=str(candidate[d]) + ','
+            incumbent_as_string+=str(seed) + ","
+            incumbent_as_string+=str(self._hyper_samples[len(self._hyper_samples)-1]) + ","
+            incumbent_as_string+=str(self._cost_function_hyper_parameter_samples[len(self._hyper_samples)-1])
+            incumbent_fh.write("%s\n"
+                           % (incumbent_as_string))
+            incumbent_fh.close()
+        except Exception, e:
+            log("WARNING: Could not write incumbent.csv!" + traceback.format_exc())
+
+
+    def _init_trace_file(self, dims):
+        try:
+            incumbent_fh = open(os.path.join(self.expt_dir, 'incumbent.csv'), 'a')
+            output_string = "incumbent,"
+            for d in range(1, dims):
+                output_string+=','
+            output_string+="job index,"
+            output_string+="chosen candidate,"
+            for d in range(1, dims):
+                output_string+=','
+            output_string+="seed,"
+            output_string+="mean,"
+            output_string+="noise,"
+            output_string+="amplitude,"
+            output_string+="ls,"
+            for d in range(1, dims):
+                output_string+=','
+            output_string+="mean,"
+            output_string+="noise,"
+            output_string+="amplitude,"
+            output_string+="ls,"
+            for d in range(1, dims):
+                output_string+=','
+            incumbent_fh.write("%s\n"
+                           % (output_string))
+            incumbent_fh.close()
+        except Exception, e:
+            log("WARNING: Could not initialize incumbent.csv!")
         
     def _initialize_models(self, comp, vals, durs):
         '''
